@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MERIT | Simulador Canindé</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+
+
+
+<style>
+:root{
+  --gd:#22453A; --gm:#32AC5C; --gl:#BAD25F;
+  --ow:#F6F8E4; --bg:#f3f4ef; --card:#fff;
+  --border:#e4e7df; --border2:#cdd1c7;
+  --text:#1a2e26; --muted:#687870; --muted2:#9aaa9f;
+  --r:16px; --rsm:10px; --rxs:8px;
+  --sh:0 1px 3px rgba(0,0,0,.05),0 4px 14px rgba(34,69,58,.07);
+  --shlg:0 8px 40px rgba(34,69,58,.18);
+  --t:.18s cubic-bezier(.4,0,.2,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* ── APP ── */
+#app{display:flex;flex-direction:column;min-height:100vh}
+
+/* TOPBAR */
+.topbar{background:var(--gd);height:62px;display:flex;align-items:center;
+  justify-content:space-between;padding:0 28px;
+  border-bottom:1px solid rgba(186,210,95,.15);position:sticky;top:0;z-index:100}
+.tb-left{display:flex;align-items:center;gap:14px}
+.tb-div{width:1px;height:26px;background:rgba(186,210,95,.28)}
+.tb-project{font-size:12px;font-weight:700;letter-spacing:.1em;color:var(--gl);text-transform:uppercase}
+.btn-admin{background:rgba(186,210,95,.15);border:1px solid rgba(186,210,95,.3);
+  color:var(--gl);font:600 12px 'Inter',sans-serif;padding:7px 14px;
+  border-radius:var(--rxs);cursor:pointer;transition:all var(--t);letter-spacing:.03em}
+.btn-admin:hover{background:rgba(186,210,95,.25)}
+
+/* LOADING */
+#loading{position:fixed;inset:0;background:var(--gd);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:16px;z-index:9999;transition:opacity .4s}
+#loading.hidden{opacity:0;pointer-events:none}
+.ld-spinner{width:40px;height:40px;border:3px solid rgba(186,210,95,.25);
+  border-top-color:var(--gl);border-radius:50%;animation:spin .8s linear infinite}
+.ld-text{color:rgba(255,255,255,.6);font-size:13px;font-weight:500}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* MAIN */
+.main{flex:1;padding:28px 28px 40px;max-width:1120px;margin:0 auto;width:100%}
+
+/* BANNER */
+.banner{background:var(--gd);border-radius:var(--r);padding:18px 22px;
+  margin-bottom:22px;display:flex;align-items:center;gap:14px}
+.bn-icon{width:40px;height:40px;background:rgba(255,255,255,.12);border-radius:10px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.bn-title{font-size:17px;font-weight:700;color:#fff}
+.bn-sub{font-size:12px;color:rgba(255,255,255,.5);margin-top:2px}
+
+/* GRID */
+.sim-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+.col{display:flex;flex-direction:column;gap:20px}
+.full{grid-column:1/-1}
+
+/* CARD */
+.card{background:var(--card);border-radius:var(--r);border:1px solid var(--border);
+  padding:26px;box-shadow:var(--sh)}
+.card-hdr{display:flex;align-items:center;gap:12px;margin-bottom:22px}
+.ci{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;
+  justify-content:center;flex-shrink:0}
+.ci-d{background:rgba(34,69,58,.09)} .ci-m{background:rgba(50,172,92,.11)}
+.ci-l{background:rgba(186,210,95,.22)} .ci-g{background:var(--gd)}
+.chdr h3{font-size:16px;font-weight:700;color:var(--text)}
+.chdr p{font-size:12px;color:var(--muted2);margin-top:1px}
+
+/* FIELD */
+.field{margin-bottom:15px}
+.field:last-of-type{margin-bottom:0}
+.field label{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;
+  color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px}
+.iw{position:relative}
+.ipre{position:absolute;left:12px;top:50%;transform:translateY(-50%);
+  font-size:13px;font-weight:600;color:var(--muted2);pointer-events:none}
+.field input,.field select{width:100%;padding:11px 13px;border:1.5px solid var(--border);
+  border-radius:var(--rxs);font:14px 'Inter',sans-serif;color:var(--text);
+  background:var(--ow);outline:none;transition:border-color var(--t),box-shadow var(--t);
+  -webkit-appearance:none}
+.field input.pre{padding-left:36px}
+.field input:focus{border-color:var(--gm);box-shadow:0 0 0 3px rgba(50,172,92,.13);background:#fff}
+
+/* CUSTOM DROPDOWN */
+.cdd{position:relative;width:100%}
+.cdd-btn{width:100%;padding:11px 36px 11px 13px;border:1.5px solid var(--border);
+  border-radius:var(--rxs);font:14px 'Inter',sans-serif;color:var(--text);
+  background:var(--ow);outline:none;cursor:pointer;text-align:left;
+  display:flex;align-items:center;gap:8px;position:relative;
+  transition:border-color var(--t),box-shadow var(--t)}
+.cdd-btn::after{content:'';position:absolute;right:13px;top:50%;transform:translateY(-50%);
+  width:11px;height:7px;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%239aaa9f' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat center;
+  transition:transform var(--t);pointer-events:none}
+.cdd-btn.open::after{transform:translateY(-50%) rotate(180deg)}
+.cdd-btn.open,.cdd-btn:focus{border-color:var(--gm);box-shadow:0 0 0 3px rgba(50,172,92,.13);background:#fff}
+.ph{color:var(--muted2)}
+#cdd-portal{position:fixed;z-index:9999;background:#fff;border:1.5px solid var(--border2);
+  border-radius:var(--rxs);box-shadow:0 8px 32px rgba(34,69,58,.16);
+  max-height:260px;overflow-y:auto;display:none;-webkit-overflow-scrolling:touch}
+#cdd-portal.open{display:block}
+.cdd-item{padding:10px 13px;font:14px 'Inter',sans-serif;cursor:pointer;
+  display:flex;align-items:center;gap:8px;transition:background var(--t)}
+.cdd-item:hover{background:var(--ow)}
+.cdd-item.sel{background:rgba(34,69,58,.05);font-weight:600}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot-g{background:var(--gm)} .dot-l{background:var(--gl)} .dot-r{background:#ef4444}
+.cdd-item.ig{background:rgba(186,210,95,.18)}
+.cdd-item.ig:hover{background:rgba(186,210,95,.28)}
+.cdd-item.ig .cn{color:#1a5e35;font-weight:600}
+.cdd-item.ig .cp{color:#2d7a47;font-weight:600}
+.cdd-item.ir{background:rgba(239,68,68,.06)}
+.cdd-item.ir:hover{background:rgba(239,68,68,.1)}
+.cdd-item.ir .cn{color:#c0392b}
+.cdd-item.ir .cp{color:#c0392b}
+.cn{flex:1} .cp{font-size:12px;color:var(--muted);font-weight:500;white-space:nowrap}
+
+/* UNIT INFO */
+.unit-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+.ui{background:rgba(243,244,239,.9);border-radius:var(--rxs);padding:13px;border:1px solid var(--border)}
+.ui.hi{background:rgba(34,69,58,.05);border-color:rgba(34,69,58,.14)}
+.ui-lbl{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:600;
+  color:var(--muted2);letter-spacing:.09em;text-transform:uppercase;margin-bottom:6px}
+.ui-val{font-size:16px;font-weight:700;color:var(--text)}
+.ui.hi .ui-val{color:var(--gd)}
+.bw{display:flex;justify-content:center;margin-top:14px}
+.badge{display:inline-flex;align-items:center;gap:6px;
+  background:rgba(34,69,58,.07);border:1.5px solid rgba(34,69,58,.18);
+  color:var(--gd);font-size:11px;font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;padding:7px 20px;border-radius:100px}
+.bdot{width:7px;height:7px;background:var(--gm);border-radius:50%;flex-shrink:0}
+.badge.sold{background:rgba(239,68,68,.06);border-color:rgba(239,68,68,.2);color:#c0392b}
+.badge.sold .bdot{background:#ef4444}
+
+/* FAIXAS */
+.faixas{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fb{border:2px solid var(--border);border-radius:var(--rxs);padding:14px;
+  text-align:left;background:var(--ow);cursor:pointer;transition:all var(--t);position:relative}
+.fb:hover{border-color:rgba(34,69,58,.3)} .fb.on{border-color:var(--gd);background:rgba(34,69,58,.05)}
+.fb-dot{position:absolute;top:8px;right:8px;width:8px;height:8px;
+  background:var(--gd);border-radius:50%;display:none}
+.fb.on .fb-dot{display:block}
+.fb-tag{font-size:10px;font-weight:700;color:var(--muted2);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px}
+.fb-val{font-size:15px;font-weight:800;color:var(--text)}
+.fb.on .fb-val{color:var(--gd)}
+.fb-sub{font-size:10px;color:var(--muted2);margin-top:2px}
+.fb-renda{font-size:9px;color:var(--muted2);margin-top:6px;line-height:1.4;
+  padding-top:6px;border-top:1px solid var(--border)}
+.fb.on .fb-renda{border-color:rgba(34,69,58,.15);color:var(--muted)}
+.fsel{margin-top:13px;padding:12px 15px;background:rgba(34,69,58,.05);
+  border:1px solid rgba(34,69,58,.1);border-radius:var(--rxs);
+  display:none;justify-content:space-between;align-items:center}
+.fsel.show{display:flex}
+.fsl{font-size:13px;font-weight:500;color:var(--text)}
+.fsv{font-size:17px;font-weight:800;color:var(--gd)}
+
+/* CAIXA TOTAL */
+.ct{margin-top:18px;padding-top:16px;border-top:1px solid var(--border);
+  display:flex;justify-content:space-between;align-items:center}
+.ct-l{font-size:13px;font-weight:600;color:var(--muted)}
+.ct-v{font-size:20px;font-weight:800;color:var(--gd)}
+
+/* SALDO ROW */
+.sr{padding:13px 15px;background:rgba(243,244,239,.9);border:1px solid var(--border);
+  border-radius:var(--rxs);display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.sr-l{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--muted)}
+.sr-v{font-size:20px;font-weight:800;color:var(--text)}
+
+/* PP SECTIONS */
+.pps{margin-bottom:18px} .pps:last-of-type{margin-bottom:0}
+.ppt{font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px}
+.ppr{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ppr .field{margin-bottom:0}
+.ppsub{font-size:11px;color:var(--muted2);text-align:right;margin-top:5px}
+.ppsub b{color:var(--muted);font-weight:600}
+.se{margin-top:18px;padding:13px 15px;border-radius:var(--rxs);
+  border:2px solid var(--border);display:flex;justify-content:space-between;align-items:center;transition:all var(--t)}
+.se.zero{background:rgba(186,210,95,.15);border-color:var(--gl)}
+.se.neg{background:rgba(239,68,68,.05);border-color:rgba(239,68,68,.2)}
+.se-l{font-size:13px;font-weight:600;color:var(--text)}
+.se-v{font-size:20px;font-weight:800;color:var(--text)}
+.se.zero .se-v{color:var(--gd)} .se.neg .se-v{color:#ef4444}
+
+/* MERIT SUGGESTION */
+.ms-card{background:linear-gradient(135deg,rgba(34,69,58,.04) 0%,#fff 50%,rgba(186,210,95,.06) 100%);
+  border:2px solid rgba(34,69,58,.12)}
+.mst{width:100%;border-collapse:collapse;border-radius:var(--rxs);
+  overflow:hidden;border:1px solid var(--border);margin-top:6px}
+.mst thead tr{background:rgba(34,69,58,.05)}
+.mst th{padding:10px 14px;font-size:11px;font-weight:600;color:var(--muted);
+  letter-spacing:.07em;text-transform:uppercase;text-align:left}
+.mst th:nth-child(2){text-align:center}
+.mst th:nth-child(3),.mst th:nth-child(4){text-align:right}
+.mst td{padding:11px 14px;border-top:1px solid var(--border);font-size:13px}
+.mst td:nth-child(2){text-align:center;color:var(--muted)}
+.mst td:nth-child(3){text-align:right;color:var(--muted)}
+.mst td:nth-child(4){text-align:right;font-weight:700;color:var(--gd)}
+.mst td:first-child{font-weight:600;color:var(--text)}
+.mst tfoot tr{background:rgba(34,69,58,.05);border-top:2px solid rgba(34,69,58,.12)}
+.mst tfoot td{padding:12px 14px;font-weight:700;color:var(--gd)}
+.mst tfoot td:last-child{text-align:right;font-size:15px}
+
+/* ── ADMIN MODAL ── */
+#admin-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);
+  display:none;align-items:center;justify-content:center;z-index:8000;padding:16px;
+  backdrop-filter:blur(4px)}
+#admin-overlay.show{display:flex}
+.admin-box{background:#fff;border-radius:20px;width:100%;max-width:900px;
+  max-height:90vh;display:flex;flex-direction:column;box-shadow:var(--shlg);overflow:hidden}
+.admin-hdr{background:var(--gd);padding:20px 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.admin-hdr h2{font-size:18px;font-weight:700;color:#fff}
+.admin-hdr p{font-size:12px;color:rgba(255,255,255,.5);margin-top:2px}
+.admin-close{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);
+  color:#fff;width:34px;height:34px;border-radius:8px;cursor:pointer;
+  font-size:18px;display:flex;align-items:center;justify-content:center;
+  transition:background var(--t);flex-shrink:0}
+.admin-close:hover{background:rgba(255,255,255,.2)}
+
+/* LOGIN ADMIN */
+#admin-login{padding:40px;display:flex;flex-direction:column;align-items:center;gap:16px}
+#admin-login p{font-size:14px;color:var(--muted);text-align:center}
+#admin-login input{width:100%;max-width:300px;padding:12px 14px;border:1.5px solid var(--border);
+  border-radius:var(--rxs);font:14px 'Inter',sans-serif;outline:none;text-align:center;
+  transition:border-color var(--t)}
+#admin-login input:focus{border-color:var(--gm)}
+#admin-login .lerr{color:#c0392b;font-size:13px;display:none}
+.btn-green{background:var(--gd);color:#fff;border:none;border-radius:var(--rxs);
+  padding:12px 28px;font:700 14px 'Inter',sans-serif;cursor:pointer;
+  transition:background var(--t)}
+.btn-green:hover{background:#1b3628}
+
+/* ADMIN GRID */
+#admin-panel{display:none;flex-direction:column;overflow:hidden;flex:1}
+.admin-stats{padding:14px 24px;background:var(--ow);border-bottom:1px solid var(--border);
+  display:flex;gap:20px;flex-shrink:0}
+.ast{font-size:12px;color:var(--muted);font-weight:500}
+.ast b{font-weight:800;color:var(--text)}
+.ast b.green{color:#1a7a48} .ast b.red{color:#c0392b}
+.admin-search{padding:12px 24px;border-bottom:1px solid var(--border);flex-shrink:0}
+.admin-search input{width:100%;padding:9px 13px;border:1.5px solid var(--border);
+  border-radius:var(--rxs);font:13px 'Inter',sans-serif;outline:none;background:var(--ow)}
+.admin-search input:focus{border-color:var(--gm)}
+.admin-grid{padding:16px 24px;overflow-y:auto;display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;flex:1}
+.au{border:2px solid var(--border);border-radius:10px;padding:12px 10px;
+  text-align:center;cursor:pointer;transition:all var(--t);user-select:none}
+.au:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.1)}
+.au.av{border-color:rgba(50,172,92,.35);background:rgba(50,172,92,.06)}
+.au.av:hover{border-color:var(--gm)}
+.au.sp{border-color:rgba(186,210,95,.5);background:rgba(186,210,95,.12)}
+.au.sp:hover{border-color:var(--gl)}
+.au.vd{border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.05)}
+.au.vd:hover{border-color:#ef4444}
+.au-num{font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px}
+.au-val{font-size:10px;color:var(--muted);margin-bottom:6px}
+.au-status{font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  padding:3px 7px;border-radius:100px}
+.au.av .au-status{background:rgba(50,172,92,.12);color:#1a7a48}
+.au.sp .au-status{background:rgba(186,210,95,.25);color:#3a6b00}
+.au.vd .au-status{background:rgba(239,68,68,.1);color:#c0392b}
+.au-saving{opacity:.5;pointer-events:none}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--gd);color:#fff;
+  font-size:13px;font-weight:600;padding:12px 20px;border-radius:var(--rxs);
+  box-shadow:0 4px 20px rgba(0,0,0,.25);z-index:9998;
+  opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+
+/* FOOTER */
+footer{text-align:center;padding:16px;font-size:11px;color:var(--muted2);
+  border-top:1px solid var(--border);background:var(--card)}
+footer b{color:var(--gd)}
+
+/* ANIMS */
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.fu{animation:fadeUp .35s ease both}
+
+/* ── MOBILE ── */
+@media(max-width:700px){
+  .topbar{padding:0 14px;height:54px}
+  .tb-div,.tb-project{display:none}
+  .main{padding:12px 12px 32px}
+  .banner{padding:14px 16px;gap:11px;border-radius:12px;margin-bottom:14px}
+  .bn-icon{width:34px;height:34px} .bn-title{font-size:14px} .bn-sub{font-size:11px}
+  .sim-grid{grid-template-columns:1fr;gap:14px}
+  .full{grid-column:1}
+  .card{padding:18px 16px}
+  .card-hdr{margin-bottom:16px}
+  .unit-grid{gap:8px;margin-top:14px}
+  .ui{padding:11px 12px} .ui-val{font-size:14px}
+  .faixas{gap:8px} .fb{padding:12px} .fb-val{font-size:13px}
+  .field input,.field select,.cdd-btn{font-size:16px!important}
+  .ct-v,.sr-v,.se-v{font-size:18px}
+  .ppr{gap:8px}
+  .admin-grid{grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;padding:12px 14px}
+  .admin-stats{padding:10px 14px;flex-wrap:wrap;gap:10px}
+  .admin-search{padding:10px 14px}
+  .admin-hdr{padding:16px 18px}
+  .mst{font-size:12px;display:block;overflow-x:auto}
+  .mst thead,.mst tbody,.mst tfoot,.mst tr{display:table;width:100%;table-layout:fixed}
+}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading">
+  <div class="ld-spinner"></div>
+  <span class="ld-text">Carregando unidades...</span>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- APP -->
+<div id="app">
+  <header class="topbar">
+    <div class="tb-left">
+      <span class="tb-project">Residencial Canindé</span>
+    </div>
+  </header>
+
+  <div class="main">
+    <!-- BANNER -->
+    <div class="banner">
+      <div class="bn-icon">
+        <svg width="20" height="20" fill="none" stroke="#BAD25F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </div>
+      <div>
+        <div class="bn-title">Simulador Residencial Canindé</div>
+        <div class="bn-sub">Previsão de Entrega: 1º Trimestre Janeiro 2029</div>
+      </div>
+    </div>
+
+    <div class="sim-grid">
+
+      <!-- COLUNA ESQUERDA -->
+      <div class="col">
+
+        <!-- 1. Dados da Unidade -->
+        <div class="card fu" style="animation-delay:.05s">
+          <div class="card-hdr">
+            <div class="ci ci-d">
+              <svg width="18" height="18" fill="none" stroke="#22453A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            </div>
+            <div class="chdr"><h3>Dados da Unidade</h3><p>Selecione uma unidade disponível</p></div>
+          </div>
+          <div class="field">
+            <label>Unidade (Casa)</label>
+            <div class="cdd" id="cdd">
+              <button type="button" class="cdd-btn" onclick="toggleCdd()" id="cdd-btn">
+                <span class="ph" id="cdd-lbl">Escolha a unidade...</span>
+              </button>
+            </div>
+          </div>
+          <div id="unit-info" style="display:none">
+            <div class="unit-grid">
+              <div class="ui"><div class="ui-lbl">Área Terreno</div><div class="ui-val" id="u-ter">—</div></div>
+              <div class="ui"><div class="ui-lbl">Área Construída</div><div class="ui-val" id="u-con">—</div></div>
+              <div class="ui hi"><div class="ui-lbl">Valor de Venda</div><div class="ui-val" id="u-ven">—</div></div>
+              <div class="ui"><div class="ui-lbl">Avaliação</div><div class="ui-val" id="u-ava">—</div></div>
+            </div>
+            <div class="bw"><span class="badge" id="u-badge"><span class="bdot"></span><span id="u-btxt">—</span></span></div>
+          </div>
+        </div>
+
+        <!-- 2. Simulação Caixa -->
+        <div class="card fu" style="animation-delay:.15s">
+          <div class="card-hdr">
+            <div class="ci ci-m">
+              <svg width="18" height="18" fill="none" stroke="#22453A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h9"/></svg>
+            </div>
+            <div class="chdr"><h3>Simulação Caixa</h3><p>Dados do financiamento</p></div>
+          </div>
+          <div class="field">
+            <label>Valor do Financiamento</label>
+            <div class="iw"><span class="ipre">R$</span><input class="pre" type="number" id="c-fin" placeholder="192500" oninput="recalc()"/></div>
+          </div>
+          <div class="field">
+            <label>Subsídio Federal</label>
+            <div class="iw"><span class="ipre">R$</span><input class="pre" type="number" id="c-sub" placeholder="0" oninput="recalc()"/></div>
+          </div>
+          <div class="field">
+            <label>FGTS</label>
+            <div class="iw"><span class="ipre">R$</span><input class="pre" type="number" id="c-fgts" placeholder="0" oninput="recalc()"/></div>
+          </div>
+          <div class="ct"><span class="ct-l">Total Caixa</span><span class="ct-v" id="total-caixa">R$ 0,00</span></div>
+        </div>
+      </div>
+
+      <!-- COLUNA DIREITA -->
+      <div class="col">
+
+        <!-- 3. Programa Meu Sonho -->
+        <div class="card fu" style="animation-delay:.1s">
+          <div class="card-hdr">
+            <div class="ci ci-l">
+              <svg width="18" height="18" fill="none" stroke="#22453A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            </div>
+            <div class="chdr"><h3>Programa Meu Sonho</h3><p>Selecione a faixa do programa</p></div>
+          </div>
+          <div class="faixas" id="faixas-grid"></div>
+          <div class="fsel" id="fsel">
+            <span class="fsl" id="fs-lbl">Subsídio</span>
+            <span class="fsv" id="fs-val">—</span>
+          </div>
+        </div>
+
+        <!-- 4. Parcelamento da Entrada -->
+        <div class="card fu" style="animation-delay:.2s">
+          <div class="card-hdr">
+            <div class="ci ci-d">
+              <svg width="18" height="18" fill="none" stroke="#22453A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
+            <div class="chdr"><h3>Parcelamento da Entrada</h3><p>com a Construtora</p></div>
+          </div>
+          <div class="sr">
+            <span class="sr-l">Saldo Construtora</span>
+            <span class="sr-v" id="saldo-const">R$ 0,00</span>
+          </div>
+          <div class="pps">
+            <div class="ppt">Sinal</div>
+            <div class="ppr">
+              <div class="field"><label>Parcelas</label><input type="number" id="p-sq" value="1" min="0" oninput="recalcPP()"/></div>
+              <div class="field"><label>Valor</label><div class="iw"><span class="ipre">R$</span><input class="pre" type="number" id="p-sv" value="1000" min="0" oninput="recalcPP()"/></div></div>
+            </div>
+            <div class="ppsub">Total: <b id="pp-st">R$ 1.000,00</b></div>
+          </div>
+          <div class="pps">
+            <div class="ppt">Mensais Pré-Chaves</div>
+            <div class="ppr">
+              <div class="field"><label>Parcelas</label><input type="number" id="p-rq" value="30" min="0" oninput="recalcPP()"/></div>
+              <div class="field"><label>Valor</label><div class="iw"><span class="ipre">R$</span><input class="pre" type="number" id="p-rv" value="0" min="0" oninput="recalcPP()"/></div></div>
+            </div>
+            <div class="ppsub">Total: <b id="pp-rt">R$ 0,00</b></div>
+          </div>
+          <div class="pps">
+            <div class="ppt">Mensais Pós-Chaves</div>
+            <div class="ppr">
+              <div class="field"><label>Parcelas</label><input type="number" id="p-oq" value="30" min="0" oninput="recalcPP()"/></div>
+              <div class="field"><label>Valor</label><div class="iw"><span class="ipre">R$</span><input class="pre" type="number" id="p-ov" value="0" min="0" oninput="recalcPP()"/></div></div>
+            </div>
+            <div class="ppsub">Total: <b id="pp-ot">R$ 0,00</b></div>
+          </div>
+          <div class="se" id="se">
+            <span class="se-l" id="se-l">Saldo Entrada</span>
+            <span class="se-v" id="se-v">R$ 0,00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. Sugestão Merit — LINHA INTEIRA -->
+      <div class="card ms-card fu full" id="ms-card" style="animation-delay:.3s;display:none">
+        <div class="card-hdr">
+          <div class="ci ci-g">
+            <svg width="18" height="18" fill="none" stroke="#BAD25F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          </div>
+          <div class="chdr"><h3>Sugestão Merit</h3><p>Parcelamento otimizado</p></div>
+        </div>
+        <table class="mst">
+          <thead><tr><th>Tipo</th><th>Parcelas</th><th>Valor</th><th>Total</th></tr></thead>
+          <tbody id="ms-tbody"></tbody>
+          <tfoot><tr><td colspan="3">Total</td><td id="ms-total">—</td></tr></tfoot>
+        </table>
+      </div>
+
+    </div>
+  </div>
+  <footer>Simulação meramente ilustrativa · Sujeita a aprovação de crédito &nbsp;|&nbsp; <b>MERIT Construtora e Incorporadora</b> © 2025</footer>
+</div>
+
+<!-- ADMIN MODAL -->
+<div id="admin-overlay">
+  <div class="admin-box">
+    <div class="admin-hdr">
+      <div><h2>Gerenciar Unidades</h2><p>Clique em uma unidade para alternar o status</p></div>
+      <button class="admin-close" onclick="closeAdmin()">✕</button>
+    </div>
+
+    <!-- Login Admin -->
+    <div id="admin-login">
+      <p>Digite a senha de administrador</p>
+      <input type="password" id="admin-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')checkAdmin()"/>
+      <span class="lerr" id="admin-err">Senha incorreta</span>
+      <button class="btn-green" onclick="checkAdmin()">Entrar</button>
+    </div>
+
+    <!-- Painel Admin -->
+    <div id="admin-panel">
+      <div class="admin-stats">
+        <span class="ast">Total: <b id="st-total">200</b></span>
+        <span class="ast">Disponíveis: <b class="green" id="st-disp">—</b></span>
+        <span class="ast">Vendidas: <b class="red" id="st-vend">—</b></span>
+      </div>
+      <div class="admin-search">
+        <input type="number" id="admin-search" placeholder="🔍  Buscar unidade por número..." oninput="filterAdmin()"/>
+      </div>
+      <div class="admin-grid" id="admin-grid"></div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+// ── FIREBASE CONFIG ───────────────────────────────────────────────────────────
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, getDocs, onSnapshot, doc, updateDoc, writeBatch, query, orderBy, limit }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const app = initializeApp({
+  apiKey: "AIzaSyAp51plLsp7Nm4gX9gJtu2WAaZMExcrXhk",
+  authDomain: "residencial-caninde.firebaseapp.com",
+  projectId: "residencial-caninde",
+  storageBucket: "residencial-caninde.firebasestorage.app",
+  messagingSenderId: "412903747308",
+  appId: "1:412903747308:web:5951b0fde4be5da30d3fc9"
+});
+const db = getFirestore(app);
+
+// ── DADOS BASE (estáticos: área, valor) ───────────────────────────────────────
+const BASE = [
+  {id:1,t:248.09,c:45.04,v:259800,a:245000},{id:2,t:248.09,c:45.04,v:259800,a:245000},
+  {id:3,t:248.09,c:45.04,v:259800,a:245000},{id:4,t:248.09,c:45.04,v:259800,a:245000},
+  {id:5,t:248.09,c:45.04,v:259800,a:245000},{id:6,t:248.09,c:45.04,v:259800,a:245000},
+  {id:7,t:248.09,c:45.04,v:259800,a:245000},{id:8,t:248.09,c:45.04,v:259800,a:245000},
+  {id:9,t:248.09,c:45.04,v:259800,a:245000},{id:10,t:248.09,c:51.90,v:300000,a:292000},
+  {id:11,t:248.09,c:45.04,v:259800,a:245000},{id:12,t:248.09,c:45.04,v:259800,a:245000},
+  {id:13,t:248.09,c:45.04,v:259800,a:245000},{id:14,t:248.09,c:45.04,v:259800,a:245000},
+  {id:15,t:248.09,c:45.04,v:259800,a:245000},{id:16,t:248.09,c:45.04,v:259800,a:245000},
+  {id:17,t:248.09,c:45.04,v:259800,a:245000},{id:18,t:248.09,c:45.04,v:259800,a:245000},
+  {id:19,t:248.09,c:45.04,v:259800,a:245000},{id:20,t:248.09,c:45.04,v:259800,a:245000},
+  {id:21,t:248.09,c:45.04,v:259800,a:245000},{id:22,t:248.09,c:45.04,v:259800,a:245000},
+  {id:23,t:248.09,c:45.04,v:259800,a:245000},{id:24,t:248.09,c:45.04,v:259800,a:245000},
+  {id:25,t:248.09,c:45.04,v:259800,a:245000},{id:26,t:248.09,c:45.04,v:259800,a:245000},
+  {id:27,t:248.09,c:45.04,v:259800,a:245000},{id:28,t:248.09,c:45.04,v:259800,a:245000},
+  {id:29,t:248.09,c:45.04,v:259800,a:245000},{id:30,t:248.09,c:45.04,v:259800,a:245000},
+  {id:31,t:248.09,c:45.04,v:259800,a:245000},{id:32,t:248.09,c:45.04,v:259800,a:245000},
+  {id:33,t:248.09,c:45.04,v:259800,a:245000},{id:34,t:248.09,c:45.04,v:259800,a:245000},
+  {id:35,t:248.09,c:45.04,v:259800,a:245000},{id:36,t:248.09,c:45.04,v:259800,a:245000},
+  {id:37,t:248.09,c:51.90,v:300000,a:292000},{id:38,t:248.09,c:45.04,v:259800,a:245000},
+  {id:39,t:248.09,c:45.04,v:259800,a:245000},{id:40,t:248.09,c:45.04,v:259800,a:245000},
+  {id:41,t:248.09,c:45.04,v:259800,a:245000},{id:42,t:248.09,c:45.04,v:259800,a:245000},
+  {id:43,t:248.09,c:45.04,v:259800,a:245000},{id:44,t:248.09,c:45.04,v:259800,a:245000},
+  {id:45,t:248.09,c:45.04,v:259800,a:245000},{id:46,t:248.09,c:45.04,v:259800,a:245000},
+  {id:47,t:248.09,c:45.04,v:259800,a:245000},{id:48,t:248.09,c:45.04,v:259800,a:245000},
+  {id:49,t:248.09,c:45.04,v:259800,a:245000},{id:50,t:248.09,c:45.04,v:259800,a:245000},
+  {id:51,t:248.09,c:45.04,v:259800,a:245000},{id:52,t:248.09,c:45.04,v:259800,a:245000},
+  {id:53,t:248.09,c:45.04,v:259800,a:245000},{id:54,t:248.09,c:45.04,v:259800,a:245000},
+  {id:55,t:248.09,c:45.04,v:259800,a:245000},{id:56,t:248.09,c:45.04,v:259800,a:245000},
+  {id:57,t:248.09,c:45.04,v:259800,a:245000},{id:58,t:248.09,c:45.04,v:259800,a:245000},
+  {id:59,t:318.98,c:45.04,v:259800,a:245000},{id:60,t:412.77,c:45.04,v:305000,a:247000},
+  {id:61,t:248.09,c:45.04,v:259800,a:245000},{id:62,t:248.09,c:45.04,v:259800,a:245000},
+  {id:63,t:248.09,c:45.04,v:259800,a:245000},{id:64,t:248.09,c:45.04,v:259800,a:245000},
+  {id:65,t:248.09,c:45.04,v:259800,a:245000},{id:66,t:248.09,c:45.04,v:259800,a:245000},
+  {id:67,t:248.09,c:51.90,v:300000,a:292000},{id:68,t:248.09,c:45.04,v:259800,a:245000},
+  {id:69,t:248.09,c:45.04,v:259800,a:245000},{id:70,t:248.09,c:45.04,v:259800,a:245000},
+  {id:71,t:248.09,c:45.04,v:259800,a:245000},{id:72,t:248.09,c:45.04,v:259800,a:245000},
+  {id:73,t:248.09,c:45.04,v:259800,a:245000},{id:74,t:248.09,c:45.04,v:259800,a:245000},
+  {id:75,t:248.09,c:45.04,v:259800,a:245000},{id:76,t:248.09,c:45.04,v:259800,a:245000},
+  {id:77,t:248.09,c:45.04,v:259800,a:245000},{id:78,t:248.09,c:45.04,v:259800,a:245000},
+  {id:79,t:248.09,c:45.04,v:259800,a:245000},{id:80,t:248.09,c:45.04,v:259800,a:245000},
+  {id:81,t:248.09,c:45.04,v:259800,a:245000},{id:82,t:248.09,c:45.04,v:259800,a:245000},
+  {id:83,t:248.09,c:45.04,v:259800,a:245000},{id:84,t:248.09,c:45.04,v:259800,a:245000},
+  {id:85,t:248.09,c:45.04,v:259800,a:245000},{id:86,t:248.09,c:51.90,v:300000,a:292000},
+  {id:87,t:248.09,c:45.04,v:259800,a:245000},{id:88,t:248.09,c:45.04,v:259800,a:259000},
+  {id:89,t:248.09,c:45.04,v:259800,a:245000},{id:90,t:248.09,c:45.04,v:259800,a:245000},
+  {id:91,t:248.09,c:45.04,v:259800,a:245000},{id:92,t:248.09,c:45.04,v:259800,a:245000},
+  {id:93,t:248.09,c:45.04,v:259800,a:245000},{id:94,t:248.09,c:45.04,v:259800,a:245000},
+  {id:95,t:248.09,c:45.04,v:259800,a:245000},{id:96,t:297.83,c:45.04,v:259800,a:245000},
+  {id:97,t:297.83,c:45.04,v:259800,a:245000},{id:98,t:248.09,c:45.04,v:259800,a:245000},
+  {id:99,t:248.09,c:45.04,v:259800,a:245000},{id:100,t:248.09,c:45.04,v:259800,a:245000},
+  {id:101,t:248.09,c:45.04,v:259800,a:245000},{id:102,t:248.09,c:45.04,v:259800,a:245000},
+  {id:103,t:248.09,c:45.04,v:259800,a:245000},{id:104,t:248.09,c:45.04,v:259800,a:245000},
+  {id:105,t:248.09,c:45.04,v:259800,a:245000},{id:106,t:248.09,c:45.04,v:259800,a:245000},
+  {id:107,t:248.09,c:45.04,v:259800,a:245000},{id:108,t:248.09,c:45.04,v:259800,a:245000},
+  {id:109,t:297.83,c:45.04,v:259800,a:245000},{id:110,t:323.83,c:45.04,v:278000,a:246000},
+  {id:111,t:248.09,c:45.04,v:259800,a:245000},{id:112,t:248.09,c:45.04,v:259800,a:245000},
+  {id:113,t:248.09,c:45.04,v:259800,a:245000},{id:114,t:248.09,c:45.04,v:259800,a:245000},
+  {id:115,t:248.09,c:45.04,v:259800,a:245000},{id:116,t:248.09,c:45.04,v:259800,a:245000},
+  {id:117,t:248.09,c:45.04,v:259800,a:245000},{id:118,t:248.09,c:45.04,v:259800,a:245000},
+  {id:119,t:248.09,c:45.04,v:259800,a:245000},{id:120,t:248.09,c:45.04,v:259800,a:245000},
+  {id:121,t:248.09,c:45.04,v:259800,a:259000},{id:122,t:248.09,c:45.04,v:259800,a:245000},
+  {id:123,t:248.09,c:51.90,v:300000,a:292000},{id:124,t:248.09,c:45.04,v:259800,a:245000},
+  {id:125,t:248.09,c:45.04,v:259800,a:245000},{id:126,t:248.09,c:45.04,v:259800,a:245000},
+  {id:127,t:248.09,c:45.04,v:259800,a:245000},{id:128,t:248.09,c:45.04,v:259800,a:245000},
+  {id:129,t:248.09,c:45.04,v:259800,a:245000},{id:130,t:248.09,c:45.04,v:259800,a:245000},
+  {id:131,t:248.09,c:45.04,v:259800,a:245000},{id:132,t:248.09,c:45.04,v:259800,a:245000},
+  {id:133,t:248.09,c:45.04,v:259800,a:245000},{id:134,t:248.09,c:45.04,v:259800,a:245000},
+  {id:135,t:248.09,c:45.04,v:259800,a:245000},{id:136,t:248.09,c:45.04,v:259800,a:245000},
+  {id:137,t:248.09,c:45.04,v:259800,a:245000},{id:138,t:248.09,c:45.04,v:259800,a:245000},
+  {id:139,t:248.09,c:45.04,v:259800,a:245000},{id:140,t:248.09,c:45.04,v:259800,a:245000},
+  {id:141,t:248.09,c:45.04,v:259800,a:245000},{id:142,t:248.09,c:45.04,v:259800,a:245000},
+  {id:143,t:248.09,c:45.04,v:259800,a:245000},{id:144,t:248.09,c:45.04,v:259800,a:245000},
+  {id:145,t:248.09,c:45.04,v:259800,a:245000},{id:146,t:248.09,c:45.04,v:259800,a:245000},
+  {id:147,t:297.83,c:45.04,v:259800,a:245000},{id:148,t:297.83,c:45.04,v:259800,a:245000},
+  {id:149,t:248.09,c:45.04,v:259800,a:245000},{id:150,t:248.09,c:45.04,v:259800,a:245000},
+  {id:151,t:248.09,c:45.04,v:259800,a:245000},{id:152,t:248.09,c:45.04,v:259800,a:245000},
+  {id:153,t:248.09,c:45.04,v:259800,a:245000},{id:154,t:248.09,c:45.04,v:259800,a:245000},
+  {id:155,t:248.09,c:45.04,v:259800,a:245000},{id:156,t:248.09,c:45.04,v:259800,a:245000},
+  {id:157,t:248.09,c:45.04,v:259800,a:245000},{id:158,t:248.09,c:45.04,v:259800,a:245000},
+  {id:159,t:248.09,c:45.04,v:259800,a:245000},{id:160,t:297.83,c:45.04,v:259800,a:245000},
+  {id:161,t:248.09,c:45.04,v:259800,a:245000},{id:162,t:248.09,c:45.04,v:259800,a:245000},
+  {id:163,t:248.09,c:45.04,v:259800,a:245000},{id:164,t:248.09,c:51.90,v:300000,a:292000},
+  {id:165,t:248.09,c:45.04,v:259800,a:245000},{id:166,t:248.09,c:45.04,v:259800,a:245000},
+  {id:167,t:248.09,c:45.04,v:259800,a:245000},{id:168,t:248.09,c:45.04,v:259800,a:245000},
+  {id:169,t:248.09,c:45.04,v:259800,a:259000},{id:170,t:248.09,c:45.04,v:259800,a:245000},
+  {id:171,t:248.09,c:45.04,v:259800,a:245000},{id:172,t:248.09,c:45.04,v:259800,a:245000},
+  {id:173,t:248.09,c:45.04,v:259800,a:245000},{id:174,t:248.09,c:45.04,v:259800,a:245000},
+  {id:175,t:248.09,c:45.04,v:259800,a:245000},{id:176,t:248.09,c:45.04,v:259800,a:245000},
+  {id:177,t:248.09,c:45.04,v:259800,a:245000},{id:178,t:248.09,c:45.04,v:259800,a:245000},
+  {id:179,t:248.09,c:45.04,v:259800,a:245000},{id:180,t:248.09,c:45.04,v:259800,a:245000},
+  {id:181,t:248.09,c:45.04,v:259800,a:245000},{id:182,t:248.09,c:45.04,v:259800,a:245000},
+  {id:183,t:248.09,c:45.04,v:259800,a:245000},{id:184,t:248.09,c:45.04,v:259800,a:245000},
+  {id:185,t:248.09,c:45.04,v:259800,a:245000},{id:186,t:248.09,c:45.04,v:259800,a:245000},
+  {id:187,t:248.09,c:45.04,v:259800,a:245000},{id:188,t:248.09,c:45.04,v:259800,a:245000},
+  {id:189,t:248.09,c:45.04,v:259800,a:245000},{id:190,t:248.09,c:45.04,v:259800,a:245000},
+  {id:191,t:248.09,c:45.04,v:259800,a:245000},{id:192,t:248.09,c:45.04,v:259800,a:245000},
+  {id:193,t:248.09,c:45.04,v:259800,a:245000},{id:194,t:248.09,c:45.04,v:259800,a:245000},
+  {id:195,t:248.09,c:45.04,v:259800,a:245000},{id:196,t:248.09,c:45.04,v:259800,a:245000},
+  {id:197,t:248.09,c:45.04,v:259800,a:245000},{id:198,t:248.09,c:45.04,v:259800,a:245000},
+  {id:199,t:248.09,c:45.04,v:259800,a:245000},{id:200,t:248.09,c:45.04,v:259800,a:245000},
+];
+
+// Status inicial (antes de carregar do Firebase)
+const DEFAULT_STATUS = {
+  7:"VENDIDA",22:"VENDIDA",59:"VENDIDA",61:"VENDIDA",74:"VENDIDA",
+  88:"VENDIDA",109:"VENDIDA",114:"VENDIDA",121:"VENDIDA",125:"VENDIDA",
+  133:"VENDIDA",135:"VENDIDA",136:"VENDIDA",138:"VENDIDA",147:"VENDIDA",
+  169:"VENDIDA"
+};
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let UNITS = []; // preenchido do Firestore
+let unit = null, faixa = null, cddOpen = false;
+
+const $ = id => document.getElementById(id);
+const brl = v => v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const m2  = v => v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+' m²';
+const nv  = id => parseFloat($(id).value)||0;
+
+// ── FIREBASE: CARREGAR E OUVIR ────────────────────────────────────────────────
+async function initFirebase(){
+  const col = collection(db, 'unidades');
+  // Verifica se já existe no Firestore
+  const snap = await getDocs(query(col, limit(1)));
+
+  if(snap.empty){
+    // Primeira vez: popula o Firestore com os dados iniciais
+    showToast('Configurando banco de dados...');
+    const batch = writeBatch(db);
+    BASE.forEach(u => {
+      const ref = doc(col, 'unit_'+u.id);
+      batch.set(ref, { id: u.id, status: DEFAULT_STATUS[u.id] || 'DISPONÍVEL PARA VENDA' });
+    });
+    await batch.commit();
+  }
+
+  // Listener em tempo real
+  onSnapshot(query(col, orderBy('id')), snapshot => {
+    UNITS = snapshot.docs.map(d => {
+      const data = d.data();
+      const base = BASE.find(b => b.id === data.id);
+      return { ...base, d: data.status };
+    });
+    hideLoading();
+    buildDropdown();
+    buildAdminGrid();
+    updateStats();
+    if(unit){
+      const updated = UNITS.find(u => u.id === unit.id);
+      if(updated && updated.d !== unit.d){ unit = updated; refreshUnitInfo(); }
+    }
+  });
+}
+
+function hideLoading(){
+  const el = $('loading');
+  el.classList.add('hidden');
+  setTimeout(()=> el.style.display='none', 400);
+}
+
+// ── DROPDOWN ─────────────────────────────────────────────────────────────────
+let portal;
+function buildDropdown(){
+  // Remove portal antigo se existir
+  if(portal) portal.remove();
+  portal = document.createElement('div');
+  portal.id = 'cdd-portal';
+  document.body.appendChild(portal);
+
+  UNITS.forEach(u => {
+    const isV = u.d === 'VENDIDA';
+    const isG = u.v === 300000 && !isV;
+    const div = document.createElement('div');
+    div.className = 'cdd-item' + (isG?' ig':isV?' ir':'');
+    div.dataset.id = u.id;
+    div.innerHTML = `<span class="dot ${isV?'dot-r':isG?'dot-l':'dot-g'}"></span>
+      <span class="cn">Unidade ${u.id}${isV?' <span style="font-size:11px;opacity:.7">[VENDIDA]</span>':''}</span>
+      <span class="cp">${brl(u.v)}</span>`;
+    div.onclick = () => selectUnit(u.id);
+    portal.appendChild(div);
+  });
+}
+
+function toggleCdd(){ cddOpen ? closeCdd() : openCdd(); }
+function openCdd(){
+  cddOpen = true;
+  const btn = $('cdd-btn');
+  btn.classList.add('open');
+  const r = btn.getBoundingClientRect();
+  portal.style.cssText = `left:${r.left}px;top:${r.bottom+6}px;width:${r.width}px`;
+  portal.classList.add('open');
+  const sel = portal.querySelector('.sel');
+  if(sel) sel.scrollIntoView({block:'nearest'});
+}
+function closeCdd(){
+  cddOpen = false;
+  const btn = $('cdd-btn');
+  if(btn) btn.classList.remove('open');
+  if(portal) portal.classList.remove('open');
+}
+document.addEventListener('click', e=>{
+  if($('cdd')&&!$('cdd').contains(e.target)&&portal&&!portal.contains(e.target)) closeCdd();
+});
+window.addEventListener('scroll', ()=>{ if(cddOpen) openCdd(); },{passive:true});
+window.addEventListener('resize', ()=>{ if(cddOpen) openCdd(); },{passive:true});
+
+function selectUnit(id){
+  unit = UNITS.find(u=>u.id===id)||null;
+  closeCdd();
+  const lbl = $('cdd-lbl');
+  lbl.classList.remove('ph');
+  const isV = unit&&unit.d==='VENDIDA';
+  const isG = unit&&unit.v===300000&&!isV;
+  lbl.style.color = isG?'#1a5e35':isV?'#c0392b':'';
+  lbl.innerHTML = unit
+    ? `Unidade ${unit.id} <span style="font-size:12px;opacity:.6;font-weight:400">— ${brl(unit.v)}</span>`
+    : 'Escolha a unidade...';
+  portal.querySelectorAll('.cdd-item').forEach(el=>el.classList.toggle('sel',parseInt(el.dataset.id)===id));
+  refreshUnitInfo();
+  recalc();
+}
+
+function refreshUnitInfo(){
+  if(!unit){ $('unit-info').style.display='none'; return; }
+  $('unit-info').style.display = 'block';
+  $('u-ter').textContent = m2(unit.t);
+  $('u-con').textContent = m2(unit.c);
+  $('u-ven').textContent = brl(unit.v);
+  $('u-ava').textContent = brl(unit.a);
+  $('u-btxt').textContent = unit.d;
+  $('u-badge').className = unit.d==='VENDIDA'?'badge sold':'badge';
+}
+
+// ── FAIXAS ────────────────────────────────────────────────────────────────────
+const FAIXAS = [
+  {f:"FAIXA 1",s:30000,renda:"Renda até R$ 2.850,00"},
+  {f:"FAIXA 2",s:25000,renda:"R$ 2.850,01 a R$ 4.700,00"},
+  {f:"FAIXA 3",s:20000,renda:"R$ 4.700,01 a R$ 8.000,00"},
+  {f:"NÃO ENQUADRADO",s:0,renda:"Acima de R$ 8.000,00"}
+];
+function buildFaixas(){
+  const g = $('faixas-grid');
+  FAIXAS.forEach(f=>{
+    const b = document.createElement('div');
+    b.className='fb'; b.dataset.f=f.f;
+    b.innerHTML=`<div class="fb-dot"></div>
+      <p class="fb-tag">${f.f}</p>
+      <p class="fb-val">${f.s>0?brl(f.s):'—'}</p>
+      <p class="fb-sub">subsídio</p>
+      <p class="fb-renda">${f.renda}</p>`;
+    b.onclick=()=>pickFaixa(f.f);
+    g.appendChild(b);
+  });
+}
+function pickFaixa(f){
+  faixa=f;
+  document.querySelectorAll('.fb').forEach(b=>b.classList.toggle('on',b.dataset.f===f));
+  const obj=FAIXAS.find(x=>x.f===f);
+  const sel=$('fsel');
+  if(obj&&obj.s>0){
+    $('fs-lbl').textContent=`Subsídio ${obj.f}`;
+    $('fs-val').textContent=brl(obj.s);
+    sel.classList.add('show');
+    // ❌ NÃO preenche mais o campo Subsídio Federal automaticamente
+  } else {
+    sel.classList.remove('show');
+  }
+  recalc();
+}
+
+// ── RECALC ────────────────────────────────────────────────────────────────────
+function recalc(){
+  const fin=nv('c-fin'), sub=nv('c-sub'), fgts=nv('c-fgts');
+  const tc=fin+sub+fgts;
+  $('total-caixa').textContent=brl(tc);
+
+  // Subsídio do Meu Sonho (faixa selecionada)
+  const objFaixa = FAIXAS.find(x=>x.f===faixa);
+  const subsidioMeuSonho = (objFaixa && objFaixa.s > 0) ? objFaixa.s : 0;
+
+  const vv=unit?unit.v:0;
+  const sc = vv - tc - subsidioMeuSonho;
+  $('saldo-const').textContent=brl(Math.max(0,sc));
+  renderMerit(sc);
+  recalcPP();
+}
+function recalcPP(){
+  const tS=nv('p-sq')*nv('p-sv'), tR=nv('p-rq')*nv('p-rv'), tO=nv('p-oq')*nv('p-ov');
+  $('pp-st').textContent=brl(tS);
+  $('pp-rt').textContent=brl(tR);
+  $('pp-ot').textContent=brl(tO);
+
+  const objFaixa = FAIXAS.find(x=>x.f===faixa);
+  const subsidioMeuSonho = (objFaixa && objFaixa.s > 0) ? objFaixa.s : 0;
+
+  const vv=unit?unit.v:0;
+  const tc=nv('c-fin')+nv('c-sub')+nv('c-fgts');
+  const sc=vv-tc-subsidioMeuSonho;
+  const se=sc-(tS+tR+tO);
+  const isZ=Math.round(se)===0, isN=se<-0.5;
+  $('se-v').textContent=brl(se);
+  const el=$('se');
+  el.classList.remove('zero','neg');
+  $('se-l').textContent=(isN?'⚠ ':'')+'Saldo Entrada';
+  if(isZ)el.classList.add('zero'); else if(isN)el.classList.add('neg');
+}
+function renderMerit(sc){
+  const card=$('ms-card');
+  if(!sc||sc<=0){card.style.display='none';return;}
+  const sv=1000,sq=1,rq=30,oq=30;
+  const apos=sc-(sq*sv), tPre=Math.round(apos*.7), tPos=apos-tPre;
+  const vPre=tPre/rq, vPos=tPos/oq;
+  const rows=[
+    {l:'Sinal',q:sq,v:sv,t:sq*sv},
+    {l:'Mensais Pré-Chaves',q:rq,v:vPre,t:tPre},
+    {l:'Mensais Pós-Chaves',q:oq,v:vPos,t:tPos},
+  ];
+  $('ms-tbody').innerHTML=rows.map(r=>`<tr><td>${r.l}</td><td>${r.q}x</td><td>${brl(r.v)}</td><td>${brl(r.t)}</td></tr>`).join('');
+  $('ms-total').textContent=brl(sc);
+  $('p-sq').value=sq; $('p-sv').value=sv;
+  $('p-rq').value=rq; $('p-rv').value=vPre.toFixed(2);
+  $('p-oq').value=oq; $('p-ov').value=vPos.toFixed(2);
+  recalcPP();
+  card.style.display='block';
+}
+
+// ── ADMIN ─────────────────────────────────────────────────────────────────────
+const ADMIN_PASS = 'merit2025'; // 🔑 Altere aqui para mudar a senha
+let adminAuth = false;
+
+function openAdmin(){
+  $('admin-overlay').classList.add('show');
+  if(!adminAuth){
+    $('admin-login').style.display='flex';
+    $('admin-panel').style.display='none';
+    setTimeout(()=>$('admin-pass').focus(),100);
+  }
+}
+function closeAdmin(){
+  $('admin-overlay').classList.remove('show');
+  $('admin-pass').value='';
+  $('admin-err').style.display='none';
+}
+function checkAdmin(){
+  if($('admin-pass').value===ADMIN_PASS){
+    adminAuth=true;
+    $('admin-login').style.display='none';
+    $('admin-panel').style.display='flex';
+    $('admin-search').value='';
+    filterAdmin();
+  } else {
+    $('admin-err').style.display='block';
+    $('admin-pass').value='';
+    $('admin-pass').focus();
+  }
+}
+
+function buildAdminGrid(){
+  if(!adminAuth) return;
+  filterAdmin();
+}
+
+function filterAdmin(){
+  const q = ($('admin-search')||{}).value||'';
+  const num = parseInt(q);
+  const grid = $('admin-grid');
+  grid.innerHTML='';
+  const list = q ? UNITS.filter(u=>u.id===num) : UNITS;
+  list.forEach(u=>{
+    const isV=u.d==='VENDIDA', isG=u.v===300000&&!isV;
+    const cls=isV?'vd':isG?'sp':'av';
+    const stTxt=isV?'VENDIDA':isG?'R$ 300K':'DISPONÍVEL';
+    const div=document.createElement('div');
+    div.className=`au ${cls}`;
+    div.id=`au-${u.id}`;
+    div.innerHTML=`<div class="au-num">Unidade ${u.id}</div>
+      <div class="au-val">${brl(u.v)}</div>
+      <div class="au-status">${stTxt}</div>`;
+    div.onclick=()=>toggleUnitStatus(u.id, u.d);
+    grid.appendChild(div);
+  });
+}
+
+async function toggleUnitStatus(id, current){
+  const newStatus = current==='VENDIDA'?'DISPONÍVEL PARA VENDA':'VENDIDA';
+  const el=$(`au-${id}`);
+  if(el) el.classList.add('au-saving');
+  try {
+    await updateDoc(doc(db, 'unidades', 'unit_'+id), { status: newStatus });
+    showToast(`Unidade ${id} → ${newStatus==='VENDIDA'?'Vendida ✓':'Disponível ✓'}`);
+  } catch(e){
+    showToast('Erro ao salvar. Tente novamente.');
+    if(el) el.classList.remove('au-saving');
+  }
+}
+
+function updateStats(){
+  const total=UNITS.length;
+  const vend=UNITS.filter(u=>u.d==='VENDIDA').length;
+  $('st-total').textContent=total;
+  $('st-disp').textContent=total-vend;
+  $('st-vend').textContent=vend;
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg){
+  const t=$('toast');
+  t.textContent=msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+// ── ATALHO SECRETO: Ctrl + Shift + A ─────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if(e.ctrlKey && e.shiftKey && e.key === 'A') openAdmin();
+});
+
+// ── EXPOR FUNÇÕES AO WINDOW (necessário para onclick no HTML dentro de module) ──
+window.toggleCdd    = toggleCdd;
+window.openAdmin    = openAdmin;
+window.closeAdmin   = closeAdmin;
+window.checkAdmin   = checkAdmin;
+window.filterAdmin  = filterAdmin;
+window.recalc       = recalc;
+window.recalcPP     = recalcPP;
+window.pickFaixa    = pickFaixa;
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+buildFaixas();
+initFirebase();
+</script>
+</body>
+</html>
